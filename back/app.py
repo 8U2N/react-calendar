@@ -76,21 +76,49 @@ def add_reminder():
     post_data = request.get_json()
     name = post_data.get('name')
     year = post_data.get('year')
-    year = post_data.get('start_day')
-    year = post_data.get('days_in_month')
-    year = post_data.get('days_in_previous_month')
+    start_day = post_data.get('start_day')
+    days_in_month = post_data.get('days_in_month')
+    days_in_previous_month = post_data.get('days_in_previous_month')
 
     if name == None:
         return jsonify('Error: What do you think this is? You must provide a Month!')
-    if title == None:
+    if year == None:
         return jsonify('Error: What do you think this is? You must provide a value2!')
 
-    new_record = Month(name, year, start_day, days_in_month, days_in_previous_months)
+    new_record = Month(name, year, start_day, days_in_month, days_in_previous_month)
     db.session.add(new_record)
     db.session.commit()
 
-    return jsonify(name_schema.dump(new_record))
+    return jsonify(month_schema.dump(new_record))
 
+# Endpoint to add multiple months
+
+def add_multiple_months():
+    if request.content_type != 'application/json':
+        return jsonify('Error: You are kind of a putz...the data MUST be sent as JSON!')
+
+    post_data = request.get_json()
+    data = post_data.get("data")
+
+    new_records = []
+
+    for month in data:
+        name = month.get("name")
+        year = month.get("year")
+        start_day = month.get("start_day")
+        days_in_month = month.get("days_in_month")
+        days_in_previous_month = month.get("previous_days_in_month")
+
+        existing_month_check = db.session.query(Month).filter(Month.name == name).filter(Month.year == year).first()
+        if existing_month_check is not None:
+            return jsonify("Error: You're trying to manage the calendar wrong, NOODLE BRAIN!")
+        else:
+            new_record = Month(name, year, start_day, days_in_month, days_in_previous_month)
+            db.session.add(new_record)
+            db.commit()
+            new_records.append(new_record)
+
+    return jsonify(multi_month_schema.dump(new_record))
 
 # Endpoint to query all months
 @app.route('/month/get', methods=['GET'])
