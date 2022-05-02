@@ -1,9 +1,3 @@
-# pipenv shell (to enter Python)
-# > from app import db
-# >db.create_all()
-# CRTL + C (to exit Python)
-# python app.py (to start hosting the database)
-
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
@@ -26,7 +20,7 @@ class Month(db.Model):
     start_day = db.Column(db.Integer, nullable=False)
     days_in_month = db.Column(db.Integer, nullable=False)
     days_in_previous_month = db.Column(db.Integer, nullable=False)
-    reminders = db.Column(db.relationship('Reminder', backref='reminder', cascade='all, delete, delete-orphan'))
+    reminders = db.relationship('Reminder', backref='reminder', cascade='all, delete, delete-orphan')
 
 
     def __init__(self, name, year, start_day, days_in_month, days_in_previous_month):
@@ -53,12 +47,12 @@ class ReminderSchema(ma.Schema):
     class Meta:
         fields = ('id', 'text', 'date', 'month_id')
 
-Reminder_schema = ReminderSchema()
+reminder_schema = ReminderSchema()
 multi_reminder_schema = ReminderSchema(many=True)
 
 class MonthSchema(ma.Schema):
     class Meta:
-        fields = ('id', 'name', 'year', 'start_day', 'days_in_month', 'days_in_previous_month')
+        fields = ('id', 'name', 'year', 'start_day', 'days_in_month', 'days_in_previous_month', "reminders")
     reminders = ma.Nested(multi_reminder_schema)
 
 
@@ -69,7 +63,7 @@ multi_month_schema = MonthSchema(many=True)
 # Endpoint to add a month
 @app.route('/month/add', methods=['POST'])
 
-def add_reminder():
+def add_month():
     if request.content_type != 'application/json':
         return jsonify('Error: You are kind of a putz...the data MUST be sent as JSON!')
 
@@ -92,7 +86,7 @@ def add_reminder():
     return jsonify(month_schema.dump(new_record))
 
 # Endpoint to add multiple months
-
+@app.route('/month/add-multi', methods=['POST'])
 def add_multiple_months():
     if request.content_type != 'application/json':
         return jsonify('Error: You are kind of a putz...the data MUST be sent as JSON!')
@@ -107,7 +101,7 @@ def add_multiple_months():
         year = month.get("year")
         start_day = month.get("start_day")
         days_in_month = month.get("days_in_month")
-        days_in_previous_month = month.get("previous_days_in_month")
+        days_in_previous_month = month.get("days_in_previous_month")
 
         existing_month_check = db.session.query(Month).filter(Month.name == name).filter(Month.year == year).first()
         if existing_month_check is not None:
@@ -115,24 +109,24 @@ def add_multiple_months():
         else:
             new_record = Month(name, year, start_day, days_in_month, days_in_previous_month)
             db.session.add(new_record)
-            db.commit()
+            db.session.commit()
             new_records.append(new_record)
 
-    return jsonify(multi_month_schema.dump(new_record))
+    return jsonify(multi_month_schema.dump(new_records))
 
 # Endpoint to query all months
 @app.route('/month/get', methods=['GET'])
 
 def get_all_months():
     all_records = db.session.query(Month).all()
-    return jsonify(multi_name_schema.dump(all_records))
+    return jsonify(multi_month_schema.dump(all_records))
 
 # Endpoint to query one month
 @app.route('/month/get/<id>', methods=['GET'])
 
 def get_month_id(id):
     one_month = db.session.query(Month).filter(Month.id == id).first()
-    return jsonify(name_schema.dump(one_month))
+    return jsonify(month_schema.dump(one_month))
 
 # Endpoint to delete a month
 @app.route('/month/delete/<id>', methods=['DELETE'])
@@ -141,7 +135,8 @@ def month_to_delete(id):
     delete_month = db.session.query(Month).filter(Month.id == id).first()
     db.session.delete(delete_month)
     db.session.commit()
-    return jsonify("Well, that's just great...it's gone. YOU DELETED IT!")
+    
+    return jsonify(month_schema.dump(delete_month))
 
 # Endpoint to update/edit a month
 @app.route('/month/update/<id>', methods=['PUT'])
@@ -165,8 +160,14 @@ def update_month_id(id):
 
     return jsonify(month_schema.dump(month_to_update))
 
+# Somewhat Query
+@app.route('/month/get/<year>/<name>', methods=['GET'])
 
-# Endpoint to add a reminder
+def get_month_in_year(year, name):
+    select_month = db.session.query(Month).filter(Month.year == year).filter(Month.name == name).first()
+    return jsonify(month_schema.dump(select_month))
+
+# # Endpoint to add a reminder
 @app.route('/reminder/add', methods=['POST'])
 
 def add_reminder():
@@ -174,68 +175,61 @@ def add_reminder():
         return jsonify('Error: You are kind of a putz...the data MUST be sent as JSON!')
 
     post_data = request.get_json()
-    name = post_data.get('name')
-    year = post_data.get('year')
-    year = post_data.get('start_day')
-    year = post_data.get('days_in_month')
-    year = post_data.get('days_in_previous_month')
+    text = post_data.get('text')
+    date = post_data.get('date')
+    month_id = post_data.get('month_id')
 
-    if name == None:
-        return jsonify('Error: What do you think this is? You must provide a Month!')
-    if title == None:
-        return jsonify('Error: What do you think this is? You must provide a value2!')
+    existing_reminder_check = db.session.query(Reminder).filter(Reminder.date == date).filter(Reminder.month_id == month_id).first()
 
-    new_record = Month(name, year)
+    if existing_reminder_check is not None:
+        return jsonify("Error in the space-time continuum: Reminders are like Highlander...THERE CAN ONLY BE ONE!!!")
+
+    new_record = Reminder(text, date, month_id)
     db.session.add(new_record)
     db.session.commit()
 
-    return jsonify(name_schema.dump(new_record))
+    return jsonify(reminder_schema.dump(new_record))
 
 
-# Endpoint to query all months
+# Endpoint to query all reminders
 @app.route('/reminder/get', methods=['GET'])
 
-def get_all_months():
-    all_records = db.session.query(Month).all()
+def get_all_reminders():
+    all_records = db.session.query(Reminder).all()
     return jsonify(multi_reminder_schema.dump(all_records))
 
 # Endpoint to query one reminder
-@app.route('/reminder/get/<id>', methods=['GET'])
+@app.route('/reminder/get/<id><month_id>', methods=['GET'])
 
-def get_reminder_id(id):
-    one_reminder = db.session.query(Month).filter(Month.id == id).first()
+def get_reminder_id(month_id, date):
+    one_reminder = db.session.query(Reminder).filter(Reminder.month_id == month_id).filter(Reminder.date == date).first()
     return jsonify(reminder_schema.dump(one_reminder))
 
 # Endpoint to delete a reminder
 @app.route('/reminder/delete/<id>', methods=['DELETE'])
 
-def reminder_to_delete(id):
-    delete_reminder = db.session.query(Reminder).filter(Reminder.id == id).first()
-    db.session.delete(delete_reminder)
+def reminder_to_delete(month_id, date):
+    reminder = db.session.query(Reminder).filter(Reminder.month_id == month_id).filter(Reminder.date == date).first()
+    db.session.delete(reminder)
     db.session.commit()
     return jsonify("Well, that's just great...it's gone. YOU DELETED IT!")
 
 # Endpoint to update/edit a reminder
-@app.route('/reminder/update/<id>', methods=['PUT'])
+@app.route('/reminder/update/<month_id>/<date>', methods=['PUT'])
 
-def update_reminder_id(id):
+def update_reminder(month_id, date):
     if request.content_type != 'application/json':
         return jsonify('Error: You are kind of a putz...the data must be sent as JSON!')
 
     put_data = request.get_json()
-    name = put_data.get('name')
-    year = put_data.get('year')
+    text = put_data.get('text')
 
-    month_to_update = db.session.query(Reminder).filter(Reminder.id == id).first()
+    reminder = db.session.query(Reminder).filter(Reminder.month_id == month_id).filter(Reminder.date == date).first()
 
-    if name != None:
-        reminder_to_update.name = name
-    if year != None:
-        reminder_to_update.year = year
-
+    reminder.text = text
     db.session.commit()
 
-    return jsonify(month_schema.dump(month_to_update))
+    return jsonify(reminder_schema.dump(reminder))
 
 
 
