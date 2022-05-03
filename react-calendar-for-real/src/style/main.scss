@@ -1,0 +1,81 @@
+html {
+    font-size: 62.5%; // 1rem is 10px
+}
+
+*,
+*::after,
+*::before {
+    margin: 0;
+    padding: 0;
+    box-sizing: inherit;
+    font-family: 'montserrat';
+}
+
+body {
+    overflow-x: hidden;
+    font-weight: normal;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.app {
+    margin-top: 2rem;
+    height: calc(100vh - 2rem);
+    width: 100%;
+    display: grid;
+    justify-items: center;
+    background-image: url('../../static/assets/black-smear.jpg');
+    color: darkmagenta;
+
+    .week-wrapper {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        justify-content: space-around;
+        align-items: center;
+    }
+
+    .day-title-wrapper {
+        display: flex;
+        justify-content: center;
+        justify-content: space-around;
+
+        .day-name {
+            font-size: 3rem;
+        }
+    }
+
+    .week-setup {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        justify-content: space-between;
+    }
+    
+    .reminder-field {
+        resize: none;
+        border: 2px solid black;
+        opacity: 25%;
+        padding: 5px;
+        margin: 5px;
+    }
+
+    .reminder-field:focus {
+        outline: none;
+        opacity: 80%;
+        background-color: white;
+        transform: translate(0, -10%);
+        color: black;
+        border-color: darkmagenta;
+    }
+
+    .footer-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: black;
+    }
+}
