@@ -28,7 +28,17 @@ export default class Calendar extends Component {
         this.state = {
             month: {},
             monthData: []
-        }
+        };
+
+        this.handleMonthChange = this.handleMonthChange.bind(this);
+
+    }
+    
+    handleMonthChange(direction) {
+        const currentMonthIndex = this.monthList.indexOf(this.state.month.name);
+        const newMonthName = this.monthList[direction === "next" ? currentMonthIndex + 1 : currentMonthIndex -1];
+        const newMonthData = this.state.monthData.filter(month => month.name === newMonthName)[0];
+        this.setState({ month: newMonthData })
     }
 
     calculateDateData() {
@@ -57,7 +67,7 @@ export default class Calendar extends Component {
             <div className="calendar-container">
                 <h3>REACTive Calendar coded by 8U2N</h3>
                 <div className="header-wrapper">
-                    <Header monthName={this.state.month.name} />
+                    <h2>&#127783;</h2><Header monthName={this.state.month.name} monthChanger={this.handleMonthChange} /><h2>&#127783;</h2>
                 </div>
                 <div className="week-wrapper">
                     <WeekWrapper monthData={this.state.month} />
